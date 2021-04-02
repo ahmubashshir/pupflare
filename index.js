@@ -26,8 +26,8 @@ const responseHeadersToRemove = ["Accept-Ranges", "Content-Length", "Keep-Alive"
         options.args.push(`--proxy-server=${process.env.PUPPETEER_PROXY}`);
     const browser = await puppeteer.launch(options);
     app.use(async ctx => {
-        if (ctx.query.url) {
-            const url = ctx.url.replace("/?url=", "");
+        if (ctx.path.length > 9) {
+            const url = ctx.path.replace( "/", "" );
             let responseBody;
             let responseData;
             let responseHeaders;
@@ -101,12 +101,15 @@ const responseHeadersToRemove = ["Accept-Ranges", "Content-Length", "Keep-Alive"
             }
 
             await page.close();
-            responseHeadersToRemove.forEach(header => delete responseHeaders[header]);
-            Object.keys(responseHeaders).forEach(header => ctx.set(header, jsesc(responseHeaders[header])));
+            responseHeadersToRemove.forEach(header => {
+                if (responseHeaders && header in responseHeaders) delete responseHeaders[header];
+            });
+            if (responseHeaders)
+                Object.keys(responseHeaders).forEach(header => ctx.set(header, jsesc(responseHeaders[header])));
             ctx.body = responseData;
         }
         else {
-            ctx.body = "Please specify the URL in the 'url' query string.";
+            ctx.body = require('fs').readFileSync('help.txt',{encoding: 'utf8',flag: 'r'});
         }
     });
     app.listen( process.env.PORT || 3000 );
