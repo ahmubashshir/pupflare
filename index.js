@@ -29,6 +29,7 @@ const responseHeadersToRemove = [ "Accept-Ranges", "Content-Length", "Keep-Alive
 		if ( ctx.query.url ) {
 			const url = ctx.url.replace( "/?url=", "" );
 			let responseBody;
+			let responseData;
 			let responseHeaders;
 			const page = await browser.newPage();
 			if ( ctx.method == "POST" ) {
@@ -60,7 +61,7 @@ const responseHeadersToRemove = [ "Accept-Ranges", "Content-Length", "Keep-Alive
 						interceptionId: e.interceptionId
 					} ).then( ( result ) => {
 						if ( result.base64Encoded ) {
-							responseBody = Buffer.from( result.body, 'base64' );
+							responseData = Buffer.from( result.body, 'base64' );
 						}
 					} );
 					obj[ 'errorReason' ] = 'BlockedByClient';
@@ -83,12 +84,14 @@ const responseHeadersToRemove = [ "Accept-Ranges", "Content-Length", "Keep-Alive
 					waitUntil: 'domcontentloaded'
 				} );
 				responseBody = await response.text();
+				responseData = await response.buffer();
 				while ( responseBody.includes( "cf-browser-verification" ) && tryCount <= 10 ) {
 					response = await page.waitForNavigation( {
 						timeout: 30000,
 						waitUntil: 'domcontentloaded'
 					} );
 					responseBody = await response.text();
+					responseData = await response.buffer();
 					tryCount++;
 				}
 				responseHeaders = response.headers();
@@ -105,16 +108,19 @@ const responseHeadersToRemove = [ "Accept-Ranges", "Content-Length", "Keep-Alive
 						} = cookie;
 						ctx.cookies.set( cookie.name, cookie.value, options );
 					} );
-				await page.close();
 			} catch ( error ) {
 				if ( !error.toString().includes( "ERR_BLOCKED_BY_CLIENT" ) ) {
 					ctx.status = 500;
 					ctx.body = error;
 				}
 			}
-			responseHeadersToRemove.forEach( header => delete responseHeaders[ header ] );
+			await page.close();
+			responseHeadersToRemove.forEach( header => {
+				if ( responseHeaders && header in responseHeaders )
+					delete responseHeaders[ header ];
+			} );
 			Object.keys( responseHeaders ).forEach( header => ctx.set( header, jsesc( responseHeaders[ header ] ) ) );
-			ctx.body = responseBody;
+			ctx.body = responseData;
 		} else {
 			ctx.body = "Please specify the URL in the 'url' query string.";
 		}
