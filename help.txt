@@ -1,0 +1,9 @@
+This API enables bypassing cloudflare using puppeteer.
+
+Usage:
+
+/               Shows help
+/<url>          Create a request to <url> with puppeteer.
+
+Source code   :   https://github.com/unixfox/pupflare
+Documentation :   https://github.com/unixfox/pupflare
