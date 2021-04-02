@@ -49,7 +49,7 @@ const responseHeadersToRemove = [ "Accept-Ranges", "Content-Length", "Keep-Alive
 					urlPattern: '*',
 					resourceType: 'Document',
 					interceptionStage: 'HeadersReceived'
-                } ],
+				} ],
 			} );
 
 			await client.on( 'Network.requestIntercepted', async e => {
